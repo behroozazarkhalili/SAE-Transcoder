@@ -63,4 +63,5 @@ Thumbs.db
 
 checkpoints/
 transcoder_checkpoints/
+sae_checkpoints/
 wandb/
