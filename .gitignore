@@ -60,3 +60,7 @@ log.txt
 # OS
 .DS_Store
 Thumbs.db
+
+checkpoints/
+transcoder_checkpoints/
+wandb/
