@@ -3,42 +3,84 @@
   "extends": [
     "config:recommended"
   ],
-  "schedule": ["before 3am on Monday"],
+  "schedule": [
+    "before 3am on Monday"
+  ],
   "timezone": "UTC",
-  "labels": ["dependencies"],
-  "assignees": ["behroozazarkhalili"],
+  "labels": [
+    "dependencies"
+  ],
+  "assignees": [
+    "behroozazarkhalili"
+  ],
   "packageRules": [
     {
       "description": "Group PyTorch ecosystem updates",
-      "matchDatasources": ["pypi"],
-      "matchPackagePatterns": ["^torch", "^nvidia-", "^cuda"],
+      "matchDatasources": [
+        "pypi"
+      ],
       "groupName": "PyTorch ecosystem",
-      "schedule": ["before 3am on Monday"]
+      "schedule": [
+        "before 3am on Monday"
+      ],
+      "matchPackageNames": [
+        "/^torch/",
+        "/^nvidia-/",
+        "/^cuda/"
+      ]
     },
     {
       "description": "Group HuggingFace ecosystem updates",
-      "matchDatasources": ["pypi"],
-      "matchPackagePatterns": ["^transformers", "^datasets", "^tokenizers", "^accelerate"],
+      "matchDatasources": [
+        "pypi"
+      ],
       "groupName": "HuggingFace ecosystem",
-      "schedule": ["before 3am on Monday"]
+      "schedule": [
+        "before 3am on Monday"
+      ],
+      "matchPackageNames": [
+        "/^transformers/",
+        "/^datasets/",
+        "/^tokenizers/",
+        "/^accelerate/"
+      ]
     },
     {
       "description": "Group ML core libraries",
-      "matchDatasources": ["pypi"],
-      "matchPackageNames": ["numpy", "scipy", "pandas", "scikit-learn"],
+      "matchDatasources": [
+        "pypi"
+      ],
+      "matchPackageNames": [
+        "numpy",
+        "scipy",
+        "pandas",
+        "scikit-learn"
+      ],
       "groupName": "ML core libraries",
-      "schedule": ["before 3am on Monday"]
+      "schedule": [
+        "before 3am on Monday"
+      ]
     },
     {
       "description": "Pin eai-sparsify - manual review required",
-      "matchDatasources": ["pypi"],
-      "matchPackageNames": ["eai-sparsify"],
+      "matchDatasources": [
+        "pypi"
+      ],
+      "matchPackageNames": [
+        "eai-sparsify"
+      ],
       "enabled": true,
-      "schedule": ["before 3am on Monday"]
+      "schedule": [
+        "before 3am on Monday"
+      ]
     }
   ],
   "vulnerabilityAlerts": {
-    "labels": ["security"],
-    "assignees": ["behroozazarkhalili"]
+    "labels": [
+      "security"
+    ],
+    "assignees": [
+      "behroozazarkhalili"
+    ]
   }
 }
