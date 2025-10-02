@@ -1,0 +1,82 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeDigest",
+    ":automergeMinor"
+  ],
+  "python": {
+    "enabled": true
+  },
+  "pip_requirements": {
+    "enabled": true,
+    "fileMatch": ["^requirements.*\\.txt$"]
+  },
+  "packageRules": [
+    {
+      "description": "Group PyTorch and CUDA dependencies together",
+      "matchPackagePatterns": ["^torch", "^nvidia-", "^cuda"],
+      "groupName": "PyTorch ecosystem",
+      "schedule": ["before 3am on Monday"]
+    },
+    {
+      "description": "Group HuggingFace packages together",
+      "matchPackagePatterns": ["^transformers", "^datasets", "^tokenizers", "^accelerate"],
+      "groupName": "HuggingFace ecosystem",
+      "schedule": ["before 3am on Monday"]
+    },
+    {
+      "description": "Group ML/AI libraries",
+      "matchPackageNames": ["numpy", "scipy", "pandas", "scikit-learn"],
+      "groupName": "ML core libraries",
+      "schedule": ["before 3am on Monday"]
+    },
+    {
+      "description": "Auto-merge patch updates for well-tested libraries",
+      "matchUpdateTypes": ["patch"],
+      "matchPackagePatterns": ["^torch", "^transformers", "^datasets"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Weekly updates for development dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "schedule": ["before 3am on Monday"]
+    },
+    {
+      "description": "Pin sparsify to avoid breaking changes",
+      "matchPackageNames": ["sparsify"],
+      "enabled": true,
+      "schedule": ["before 3am on Monday"],
+      "automerge": false
+    }
+  ],
+  "prHourlyLimit": 3,
+  "prConcurrentLimit": 5,
+  "separateMajorMinor": true,
+  "separateMinorPatch": false,
+  "labels": ["dependencies"],
+  "assignees": ["behroozazarkhalili"],
+  "reviewers": ["behroozazarkhalili"],
+  "rangeStrategy": "bump",
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore(deps):",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "prTitle": "{{semanticPrefix}}{{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "assignees": ["behroozazarkhalili"],
+    "schedule": ["at any time"]
+  },
+  "lockFileMaintenance": {
+    "enabled": false,
+    "schedule": ["before 3am on Monday"]
+  },
+  "timezone": "UTC",
+  "schedule": ["before 3am on Monday"]
+}
