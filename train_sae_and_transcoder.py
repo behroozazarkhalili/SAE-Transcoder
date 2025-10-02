@@ -18,7 +18,6 @@ Custom Hookpoints:
 from __future__ import annotations
 
 import os
-import sys
 import torch
 import json
 import logging
@@ -203,112 +202,6 @@ class ConfigLoader:
             json.dump(config_dict, f, indent=2)
 
         logger.info(f"💾 Configuration saved to: {output_path}")
-
-    @staticmethod
-    def create_example_configs():
-        """Create example configuration files"""
-        examples_dir = Path("./config_examples")
-        examples_dir.mkdir(exist_ok=True)
-
-        # Example 1: Basic SAE configuration
-        sae_config = {
-            "model_type": "sae",
-            "model_name": "HuggingFaceTB/SmolLM2-135M",
-            "dataset_name": "EleutherAI/SmolLM2-135M-10B",
-            "max_samples": 1000,
-            "max_seq_length": 256,
-            "expansion_factor": 8,
-            "k": 8,
-            "batch_size": 2,
-            "grad_acc_steps": 8,
-            "loss_fn": "fvu",
-            "optimizer": "adam",
-            "device": "cuda:1",
-            "log_to_wandb": False,
-            "run_name": "basic_sae"
-        }
-
-        # Example 2: Transcoder with specific layers
-        transcoder_config = {
-            "model_type": "transcoder",
-            "model_name": "HuggingFaceTB/SmolLM2-135M",
-            "dataset_name": "EleutherAI/SmolLM2-135M-10B",
-            "max_samples": 5000,
-            "max_seq_length": 256,
-            "expansion_factor": 16,
-            "k": 16,
-            "batch_size": 2,
-            "grad_acc_steps": 16,
-            "layers": [6, 7, 8],
-            "loss_fn": "fvu",
-            "optimizer": "adam",
-            "lr": 0.0001,
-            "device": "cuda:1",
-            "log_to_wandb": True,
-            "wandb_project": "transcoder-training",
-            "run_name": "transcoder_layers_6_7_8"
-        }
-
-        # Example 3: Custom hookpoints (attention layers)
-        custom_hookpoints_config = {
-            "model_type": "sae",
-            "model_name": "gpt2",
-            "dataset_name": "EleutherAI/SmolLM2-135M-10B",
-            "max_samples": 2000,
-            "max_seq_length": 512,
-            "expansion_factor": 32,
-            "k": 32,
-            "batch_size": 4,
-            "grad_acc_steps": 4,
-            "hookpoints": ["h.*.attn", "h.*.mlp.act"],
-            "loss_fn": "fvu",
-            "optimizer": "adam",
-            "device": "cuda:1",
-            "run_name": "custom_hookpoints_attn_mlp"
-        }
-
-        # Example 4: Advanced training with all options
-        advanced_config = {
-            "model_type": "sae",
-            "model_name": "HuggingFaceTB/SmolLM2-135M",
-            "dataset_name": "EleutherAI/SmolLM2-135M-10B",
-            "dataset_split": "train",
-            "max_samples": 10000,
-            "max_seq_length": 1024,
-            "expansion_factor": 64,
-            "k": 64,
-            "activation": "topk",
-            "normalize_decoder": True,
-            "multi_topk": True,
-            "batch_size": 8,
-            "grad_acc_steps": 4,
-            "micro_acc_steps": 1,
-            "loss_fn": "fvu",
-            "optimizer": "adam",
-            "lr": 0.0001,
-            "lr_warmup_steps": 2000,
-            "weight_decay": 0.0,
-            "auxk_alpha": 0.03125,
-            "dead_feature_threshold": 5000000,
-            "k_decay_steps": 20000,
-            "layer_stride": 2,
-            "save_every": 500,
-            "save_best": True,
-            "log_to_wandb": True,
-            "wandb_project": "advanced-sae-training",
-            "wandb_log_frequency": 50,
-            "device": "cuda:1",
-            "dtype": "bfloat16",
-            "run_name": "advanced_sae_full_config"
-        }
-
-        # Save example configs
-        ConfigLoader.save_to_json(UnifiedTrainingConfig(**sae_config), examples_dir / "sae_basic.json")
-        ConfigLoader.save_to_json(UnifiedTrainingConfig(**transcoder_config), examples_dir / "transcoder_layers.json")
-        ConfigLoader.save_to_json(UnifiedTrainingConfig(**custom_hookpoints_config), examples_dir / "custom_hookpoints.json")
-        ConfigLoader.save_to_json(UnifiedTrainingConfig(**advanced_config), examples_dir / "advanced_full.json")
-
-        logger.info(f"✅ Example configurations created in {examples_dir}/")
 
 # ==============================================================================
 # TRAINER CLASS
@@ -534,36 +427,17 @@ Examples:
   # Train with JSON config
   python train_sae_and_transcoder.py --config config.json
 
-  # Create example configs
-  python train_sae_and_transcoder.py --create-examples
-
   # Train with config and override run name
   python train_sae_and_transcoder.py --config config.json --run-name my_experiment
         """
     )
 
-    parser.add_argument("--config", type=str, help="Path to JSON configuration file")
-    parser.add_argument("--create-examples", action="store_true", help="Create example configuration files")
+    parser.add_argument("--config", type=str, required=True, help="Path to JSON configuration file")
     parser.add_argument("--run-name", type=str, help="Override run name from config")
     parser.add_argument("--device", type=str, help="Override device from config")
     parser.add_argument("--wandb", action="store_true", help="Enable W&B logging (override config)")
 
     args = parser.parse_args()
-
-    # Create example configs if requested
-    if args.create_examples:
-        ConfigLoader.create_example_configs()
-        logger.info("\n📚 Example configurations created! Check ./config_examples/ directory")
-        logger.info("\nYou can now run:")
-        logger.info("  python train_sae_and_transcoder.py --config config_examples/sae_basic.json")
-        return
-
-    # Require config file for training
-    if not args.config:
-        parser.print_help()
-        logger.error("\n❌ Error: --config is required for training")
-        logger.info("💡 Tip: Use --create-examples to generate example configuration files")
-        sys.exit(1)
 
     # Load configuration
     config = ConfigLoader.load_from_json(args.config)
@@ -599,20 +473,21 @@ if __name__ == "__main__":
 """
 JSON CONFIGURATION FORMAT:
 
+The UnifiedTrainingConfig class provides meaningful defaults for all parameters.
+You only need to specify the parameters you want to override in your JSON config.
+
+Minimal SAE Example (only required field):
+{
+  "model_type": "sae"
+}
+
 Basic SAE Example:
 {
   "model_type": "sae",
-  "model_name": "HuggingFaceTB/SmolLM2-135M",
-  "dataset_name": "EleutherAI/SmolLM2-135M-10B",
   "max_samples": 1000,
-  "max_seq_length": 256,
   "expansion_factor": 8,
   "k": 8,
-  "batch_size": 2,
-  "grad_acc_steps": 8,
-  "loss_fn": "fvu",
-  "device": "cuda:1",
-  "run_name": "basic_sae"
+  "run_name": "my_sae_experiment"
 }
 
 Transcoder with Specific Layers:
@@ -622,9 +497,6 @@ Transcoder with Specific Layers:
   "expansion_factor": 16,
   "k": 16,
   "batch_size": 2,
-  "grad_acc_steps": 16,
-  "loss_fn": "fvu",
-  "log_to_wandb": true,
   "run_name": "transcoder_layers_6_7_8"
 }
 
@@ -635,7 +507,6 @@ Custom Hookpoints (Unix Pattern Matching):
   "hookpoints": ["h.*.attn", "h.*.mlp.act"],
   "expansion_factor": 32,
   "k": 32,
-  "batch_size": 4,
   "run_name": "custom_hookpoints"
 }
 
@@ -649,15 +520,16 @@ Hookpoint Pattern Examples:
 
 USAGE:
 
-1. Create example configs:
-   python train_sae_and_transcoder.py --create-examples
-
+1. Create your config JSON file with only the parameters you need to override
 2. Train with config:
    python train_sae_and_transcoder.py --config config.json
 
 3. Train with overrides:
    python train_sae_and_transcoder.py --config config.json --run-name my_exp --wandb
 
-4. Custom config file:
-   python train_sae_and_transcoder.py --config my_experiments/custom_config.json
+4. See config_examples/ directory for reference configurations
+
+DEFAULT VALUES:
+All parameters have sensible defaults defined in UnifiedTrainingConfig dataclass.
+Check the class definition for complete list of defaults.
 """
