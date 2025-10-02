@@ -1,0 +1,33 @@
+# SAE-Transcoder Requirements
+# Based on EleutherAI/sparsify dependencies with tested versions
+
+# Core ML Framework
+torch>=2.0.0  # PyTorch for deep learning (tested: 2.8.0)
+
+# Sparsify - SAE and Transcoder training library
+eai-sparsify==1.2.2  # EleutherAI sparsify library (pip install eai-sparsify)
+
+# HuggingFace Ecosystem - Required by eai-sparsify
+transformers>=4.30.0  # Transformers library for pretrained models (tested: 4.56.2)
+datasets>=2.14.0  # Dataset loading and processing (tested: 4.1.1)
+tokenizers>=0.13.0  # Fast tokenizers (tested: 0.22.1)
+accelerate>=0.20.0  # Multi-GPU training and optimization (tested: 1.10.1)
+huggingface-hub>=0.16.0  # Model and dataset hub access (tested: 0.35.3)
+safetensors>=0.3.0  # Safe tensor serialization (tested: 0.6.2)
+
+# Tensor Operations - Required by eai-sparsify
+einops>=0.6.0  # Readable tensor operations (tested: 0.8.1)
+
+# Utilities - Required by eai-sparsify
+natsort>=8.0.0  # Natural sorting for module names (tested: 8.4.0)
+simple-parsing>=0.1.0  # Command-line argument parsing (tested: 0.1.7)
+schedulefree>=1.0.0  # Optimizer scheduling (tested: 1.4.1)
+
+# Experiment Tracking (Optional)
+wandb>=0.15.0  # Weights & Biases for experiment tracking (tested: 0.22.1)
+
+# Development Tools (Optional)
+# pre-commit>=3.3.0  # Git hooks for code quality
+# pytest>=7.4.0  # Testing framework
+# black>=23.0.0  # Code formatter
+# ruff>=0.0.270  # Fast Python linter

@@ -47,8 +47,8 @@
       "schedule": ["before 3am on Monday"]
     },
     {
-      "description": "Pin sparsify to avoid breaking changes",
-      "matchPackageNames": ["sparsify"],
+      "description": "Pin eai-sparsify to avoid breaking changes",
+      "matchPackageNames": ["eai-sparsify"],
       "enabled": true,
       "schedule": ["before 3am on Monday"],
       "automerge": false
