@@ -3,16 +3,10 @@
   "extends": [
     "config:recommended",
     ":dependencyDashboard",
-    ":semanticCommits",
-    ":automergeDigest",
-    ":automergeMinor"
+    ":semanticCommits"
   ],
-  "python": {
-    "enabled": true
-  },
   "pip_requirements": {
-    "enabled": true,
-    "fileMatch": ["^requirements.*\\.txt$"]
+    "fileMatch": ["(^|/)requirements.*\\.txt$"]
   },
   "packageRules": [
     {
