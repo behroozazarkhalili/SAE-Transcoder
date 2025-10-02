@@ -23,8 +23,9 @@ natsort>=8.0.0  # Natural sorting for module names (tested: 8.4.0)
 simple-parsing>=0.1.0  # Command-line argument parsing (tested: 0.1.7)
 schedulefree>=1.0.0  # Optimizer scheduling (tested: 1.4.1)
 
-# Experiment Tracking (Optional)
+# Experiment Tracking (Optional - choose one)
 wandb>=0.15.0  # Weights & Biases for experiment tracking (tested: 0.22.1)
+# trackio>=0.1.0  # HuggingFace Trackio - local-first alternative to wandb (pip install trackio)
 
 # Development Tools (Optional)
 # pre-commit>=3.3.0  # Git hooks for code quality

@@ -4,7 +4,7 @@ Unified trainer for SAE and Transcoder models.
 This module provides the UnifiedTrainer class that handles:
 - Model and dataset setup
 - Training configuration creation
-- Weights & Biases integration
+- Experiment tracking (W&B or Trackio) integration
 - Training execution and checkpoint management
 """
 
@@ -15,8 +15,6 @@ import logging
 from pathlib import Path
 from dataclasses import asdict
 
-import torch
-import wandb
 from datasets import load_dataset, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -43,6 +41,22 @@ class UnifiedTrainer:
         self.model = None  # Will be loaded in setup_model_and_data()
         self.tokenizer = None  # Will be loaded in setup_model_and_data()
         self.dataset = None  # Will be loaded in setup_model_and_data()
+
+        # Setup experiment tracker (wandb or trackio)
+        if self.config.experiment_tracker == "trackio":
+            try:
+                import trackio as wandb
+                self.wandb = wandb
+                logger.info("📊 Using Trackio for experiment tracking (HuggingFace local-first)")
+            except ImportError:
+                logger.warning("⚠️  Trackio not installed. Install with: pip install trackio")
+                logger.warning("⚠️  Falling back to wandb")
+                import wandb
+                self.wandb = wandb
+        else:
+            import wandb
+            self.wandb = wandb
+            logger.info("📊 Using W&B for experiment tracking")
 
         # Display configuration
         self._print_header()
@@ -203,16 +217,17 @@ class UnifiedTrainer:
         )
 
     def setup_wandb(self):
-        """Setup Weights & Biases logging if enabled"""
+        """Setup experiment tracking (W&B or Trackio) if enabled"""
         if self.config.log_to_wandb:
-            wandb.init(
+            tracker_name = "Trackio" if self.config.experiment_tracker == "trackio" else "W&B"
+            self.wandb.init(
                 project=self.config.wandb_project,
                 entity=self.config.wandb_entity,
                 name=self.config.run_name,
                 config=asdict(self.config),
                 tags=[self.config.model_type, "unified_training"],
             )
-            logger.info("📊 Weights & Biases logging enabled")
+            logger.info(f"✅ {tracker_name} experiment tracking enabled")
 
     def train(self) -> Trainer:
         """
@@ -251,9 +266,9 @@ class UnifiedTrainer:
 
             logger.info(f"✅ {self.config.model_type.upper()} training completed successfully!")
 
-            # Cleanup W&B
+            # Cleanup experiment tracker
             if self.config.log_to_wandb:
-                wandb.finish()
+                self.wandb.finish()
 
             return trainer
 

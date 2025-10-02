@@ -78,11 +78,12 @@ class UnifiedTrainingConfig:
     save_every: int = 1000  # Save checkpoint every N steps
     save_best: bool = True  # Save best checkpoint based on validation loss
 
-    # ==== WEIGHTS & BIASES ====
-    log_to_wandb: bool = False  # Enable Weights & Biases logging
-    wandb_project: str = "sae-transcoder-unified"  # W&B project name
-    wandb_entity: Optional[str] = None  # W&B entity (username or team name)
-    wandb_log_frequency: int = 100  # Log metrics to W&B every N steps
+    # ==== EXPERIMENT TRACKING ====
+    experiment_tracker: Literal["wandb", "trackio"] = "wandb"  # Experiment tracker: wandb or trackio (HuggingFace)
+    log_to_wandb: bool = False  # Enable experiment tracking (wandb or trackio based on experiment_tracker)
+    wandb_project: str = "sae-transcoder-unified"  # Project name (works for both wandb and trackio)
+    wandb_entity: Optional[str] = None  # Entity/username (wandb) or HF username (trackio)
+    wandb_log_frequency: int = 100  # Log metrics every N steps
 
     # ==== HARDWARE ====
     device: str = "cuda:1" if torch.cuda.is_available() else "cpu"  # Device for training (cuda:0, cuda:1, cpu)

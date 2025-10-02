@@ -12,7 +12,7 @@ This project provides a clean, modular implementation for training both SAE and 
 - **JSON Configuration**: Easy-to-use configuration with meaningful defaults
 - **Custom Hookpoints**: Unix pattern matching for flexible layer selection
 - **Streaming Datasets**: Memory-efficient dataset loading
-- **Weights & Biases**: Built-in experiment tracking support
+- **Flexible Experiment Tracking**: Support for both W&B and Trackio (local-first alternative)
 - **Modular Design**: Separated config, trainer, and CLI components
 
 ### SAE vs Transcoder
@@ -129,10 +129,13 @@ All parameters have sensible defaults - only specify what you want to override.
 - `save_every`: Save every N steps (default: `1000`)
 - `save_best`: Save best checkpoint (default: `true`)
 
-#### Weights & Biases
-- `log_to_wandb`: Enable W&B (default: `false`)
-- `wandb_project`: W&B project name (default: `"sae-transcoder-unified"`)
-- `wandb_entity`: W&B entity/team (default: `null`)
+#### Experiment Tracking (W&B or Trackio)
+- `experiment_tracker`: `"wandb"` or `"trackio"` (default: `"wandb"`)
+  - **wandb**: Weights & Biases (cloud-based experiment tracking)
+  - **trackio**: HuggingFace Trackio (local-first, open-source alternative)
+- `log_to_wandb`: Enable experiment tracking (default: `false`)
+- `wandb_project`: Project name for both wandb and trackio (default: `"sae-transcoder-unified"`)
+- `wandb_entity`: W&B entity/team or HF username (default: `null`)
 - `wandb_log_frequency`: Log every N steps (default: `100`)
 
 #### Hardware
@@ -219,6 +222,21 @@ SAE-Transcoder/
   "run_name": "custom_hookpoints"
 }
 ```
+
+### Using Trackio (Local-First Experiment Tracking)
+
+```json
+{
+  "model_type": "sae",
+  "experiment_tracker": "trackio",
+  "log_to_wandb": true,
+  "wandb_project": "my_local_experiments",
+  "wandb_entity": "your_hf_username",
+  "run_name": "trackio_experiment"
+}
+```
+
+**Note**: Install trackio with `pip install trackio`. Trackio stores experiments locally by default and can optionally sync to HuggingFace Spaces.
 
 ## Development
 
