@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 from typing import Optional, List, Literal, Dict, Any
 from dataclasses import dataclass, asdict
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import wandb
 
@@ -30,7 +30,7 @@ class SAETrainingConfig:
     """Comprehensive configuration for SAE training"""
     
     # Model and Dataset - using proven working model from documentation
-    model_name: str = "Qwen3-0.6B"
+    model_name: str = "Qwen/Qwen3-0.6B"
     dataset_name: str = "EleutherAI/SmolLM2-135M-10B"
     dataset_split: str = "train"
     max_samples: Optional[int] = 1_000  # Limit dataset size for faster training
@@ -89,7 +89,7 @@ class SAETrainingConfig:
     wandb_log_frequency: int = 100
     
     # Hardware
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str = "cuda:1" if torch.cuda.is_available() else "cpu"
     dtype: torch.dtype = torch.bfloat16
     
     def __post_init__(self):
@@ -119,7 +119,7 @@ class SAETrainer:
         # Load model
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.model_name,
-            device_map={"": self.config.device},
+            device_map={"": "cuda:1"},
             torch_dtype=self.config.dtype,
         )
         
@@ -129,17 +129,21 @@ class SAETrainer:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             
         logger.info("📚 Loading and processing dataset...")
-        
-        # Load dataset
+
+        # Load dataset with streaming to avoid downloading entire dataset
         dataset = load_dataset(
-            self.config.dataset_name, 
-            split=self.config.dataset_split
+            self.config.dataset_name,
+            split=self.config.dataset_split,
+            streaming=True
         )
-        
+
         # Limit dataset size if specified
-        if self.config.max_samples and len(dataset) > self.config.max_samples:
-            dataset = dataset.select(range(self.config.max_samples))
+        if self.config.max_samples:
+            dataset = dataset.take(self.config.max_samples)
             logger.info(f"📋 Limited dataset to {self.config.max_samples:,} samples")
+
+        # Convert IterableDataset to Dataset for chunk_and_tokenize compatibility
+        dataset = Dataset.from_dict({"text": [item["text"] for item in dataset]})
         
         # Tokenize dataset
         self.dataset = chunk_and_tokenize(
@@ -219,6 +223,73 @@ class SAETrainer:
         logger.info(f"   - Save every: {self.config.save_every} steps")
         logger.info(f"   - Save best: {self.config.save_best}")
         logger.info("="*60)
+
+    def analyze_sae(self, trainer: "Trainer", num_samples: int = 100):
+        """
+        Analyze the trained SAE performance
+
+        Args:
+            trainer: Trained sparsify Trainer object
+            num_samples: Number of samples to analyze
+        """
+        logger.info("\n" + "="*60)
+        logger.info("SAE ANALYSIS")
+        logger.info("="*60)
+
+        # Get SAE modules from trainer (it's a dict mapping hookpoint -> SAE)
+        saes = trainer.saes
+
+        for hookpoint_name, sae in saes.items():
+            logger.info(f"\n📊 {hookpoint_name} Analysis:")
+
+            # Architecture analysis
+            logger.info(f"   Architecture:")
+            logger.info(f"   - Input dim: {sae.encoder.in_features}")
+            logger.info(f"   - Latent dim: {sae.encoder.out_features}")
+            logger.info(f"   - Expansion factor: {sae.encoder.out_features // sae.encoder.in_features}")
+            logger.info(f"   - Top-k: {self.config.k}")
+
+        # Evaluate reconstruction quality
+        logger.info(f"\n🎯 Reconstruction Quality Evaluation:")
+        sample_size = min(num_samples, len(self.dataset))
+        eval_dataset = torch.utils.data.Subset(self.dataset, range(sample_size))
+        eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=16, shuffle=False)
+
+        total_loss = 0.0
+        num_batches = 0
+
+        self.model.eval()
+        with torch.no_grad():
+            for batch in eval_loader:
+                input_ids = batch["input_ids"].to(self.config.device)
+                outputs = self.model(input_ids, labels=input_ids)
+                total_loss += outputs.loss.item()
+                num_batches += 1
+
+                if num_batches >= 50:
+                    break
+
+        final_loss = total_loss / num_batches
+        logger.info(f"   - Model loss with SAE: {final_loss:.4f}")
+
+        # Save analysis results
+        analysis_path = Path(self.config.save_dir) / f"{self.config.run_name}_analysis.json"
+        analysis_results = {
+            "final_loss": final_loss,
+            "num_hookpoints": len(saes),
+            "hookpoints": list(saes.keys()),
+            "expansion_factor": self.config.expansion_factor,
+            "k": self.config.k,
+            "num_samples_analyzed": sample_size
+        }
+
+        with open(analysis_path, "w") as f:
+            json.dump(analysis_results, f, indent=2)
+
+        logger.info(f"\n💾 Analysis saved to: {analysis_path}")
+        logger.info("="*60)
+
+        return analysis_results
         
     def train(self) -> Trainer:
         """Execute SAE training"""
@@ -244,12 +315,15 @@ class SAETrainer:
             
             logger.info("🚀 Starting SAE training...")
             trainer.fit()
-            
+
             logger.info("✅ SAE training completed successfully!")
-            
+
+            # Analyze the trained SAE
+            self.analyze_sae(trainer)
+
             if self.config.log_to_wandb:
                 wandb.finish()
-                
+
             return trainer
             
         except Exception as e:
@@ -259,11 +333,15 @@ class SAETrainer:
 def main():
     """Main training function with example configurations"""
     
-    # Example 1: Basic SAE training - minimal config like documentation
+    # Example 1: Basic SAE training - memory optimized
     basic_config = SAETrainingConfig(
         run_name="basic_sae_training",
-        batch_size=16,  # Match documentation example
+        expansion_factor=8,  # Reduced for memory efficiency
+        k=8,  # Match expansion factor
+        batch_size=2,  # Reduced for memory
+        grad_acc_steps=8,  # Maintain effective batch size
         max_samples=1000,  # Fewer samples for testing
+        max_seq_length=256,  # Reduced from 1024 to save memory
         log_to_wandb=False,
     )
     

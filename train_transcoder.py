@@ -259,15 +259,15 @@ class TranscoderTrainer:
     def evaluate_baseline(self):
         """Evaluate baseline model performance before training"""
         logger.info("📊 Evaluating baseline model performance...")
-        
+
         # Get a small sample for evaluation
         sample_size = min(100, len(self.dataset))
         eval_dataset = torch.utils.data.Subset(self.dataset, range(sample_size))
         eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=16, shuffle=False)
-        
+
         total_loss = 0.0
         num_batches = 0
-        
+
         self.model.eval()
         with torch.no_grad():
             for batch in eval_loader:
@@ -275,13 +275,74 @@ class TranscoderTrainer:
                 outputs = self.model(input_ids, labels=input_ids)
                 total_loss += outputs.loss.item()
                 num_batches += 1
-                
-                if num_batches >= 50:  # Limit evaluation
-                    break
-        
+
         baseline_loss = total_loss / num_batches
         logger.info(f"📈 Baseline model loss: {baseline_loss:.4f}")
         return baseline_loss
+
+    def analyze_transcoder(self, trainer: "Trainer", num_samples: int = 100):
+        """
+        Analyze the trained transcoder performance
+
+        Args:
+            trainer: Trained sparsify Trainer object
+            num_samples: Number of samples to analyze
+        """
+        logger.info("\n" + "="*60)
+        logger.info("TRANSCODER ANALYSIS")
+        logger.info("="*60)
+
+        # Get SAE modules from trainer (it's a dict mapping hookpoint -> SAE)
+        saes = trainer.saes
+
+        for hookpoint_name, sae in saes.items():
+            logger.info(f"\n📊 {hookpoint_name} Analysis:")
+
+            # Sparsity analysis
+            logger.info(f"   Architecture:")
+            logger.info(f"   - Input dim: {sae.encoder.in_features}")
+            logger.info(f"   - Latent dim: {sae.encoder.out_features}")
+            logger.info(f"   - Expansion factor: {sae.encoder.out_features // sae.encoder.in_features}")
+            logger.info(f"   - Top-k: {self.config.k}")
+
+        # Evaluate final model performance
+        logger.info(f"\n🎯 Final Model Evaluation:")
+        sample_size = min(num_samples, len(self.dataset))
+        eval_dataset = torch.utils.data.Subset(self.dataset, range(sample_size))
+        eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=16, shuffle=False)
+
+        total_loss = 0.0
+        num_batches = 0
+
+        self.model.eval()
+        with torch.no_grad():
+            for batch in eval_loader:
+                input_ids = batch["input_ids"].to(self.config.device)
+                outputs = self.model(input_ids, labels=input_ids)
+                total_loss += outputs.loss.item()
+                num_batches += 1
+
+        final_loss = total_loss / num_batches
+        logger.info(f"   - Final model loss: {final_loss:.4f}")
+
+        # Save analysis results
+        analysis_path = Path(self.config.save_dir) / f"{self.config.run_name}_analysis.json"
+        analysis_results = {
+            "final_loss": final_loss,
+            "num_layers": len(self.config.layers),
+            "layers": self.config.layers,
+            "expansion_factor": self.config.expansion_factor,
+            "k": self.config.k,
+            "num_samples_analyzed": sample_size
+        }
+
+        with open(analysis_path, "w") as f:
+            json.dump(analysis_results, f, indent=2)
+
+        logger.info(f"\n💾 Analysis saved to: {analysis_path}")
+        logger.info("="*60)
+
+        return analysis_results
         
     def train(self) -> Trainer:
         """Execute Transcoder training"""
@@ -315,12 +376,15 @@ class TranscoderTrainer:
             
             logger.info("🚀 Starting end-to-end Transcoder training...")
             trainer.fit()
-            
+
             logger.info("✅ Transcoder training completed successfully!")
-            
+
+            # Analyze the trained transcoder
+            self.analyze_transcoder(trainer)
+
             if self.config.log_to_wandb:
                 wandb.finish()
-                
+
             return trainer
             
         except Exception as e:
@@ -333,11 +397,12 @@ def main():
     # Example 1: Basic transcoder for middle layers
     basic_config = TranscoderTrainingConfig(
         run_name="basic_transcoder",
-        expansion_factor=32,
-        k=32,
-        batch_size=8,
-        grad_acc_steps=4,
-        layers=[6, 7, 8],  # Target middle layers
+        expansion_factor=4,  # Further reduced to 4 to save memory
+        k=4,  # Match expansion factor
+        batch_size=2,  # Reduced batch size to fit memory
+        grad_acc_steps=32,  # Increased to maintain effective batch size
+        max_seq_length=256,  # Reduced from 1024 to save memory
+        layers=[6, 7, 8],  # Middle layers
         loss_fn="fvu",
         optimizer="adam",
         log_to_wandb=False,
