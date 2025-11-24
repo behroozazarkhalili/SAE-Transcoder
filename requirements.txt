@@ -5,7 +5,7 @@
 torch>=2.0.0  # PyTorch for deep learning (tested: 2.8.0)
 
 # Sparsify - SAE and Transcoder training library
-eai-sparsify==1.2.2  # EleutherAI sparsify library (pip install eai-sparsify)
+eai-sparsify==1.3.0  # EleutherAI sparsify library (pip install eai-sparsify)
 
 # HuggingFace Ecosystem - Required by eai-sparsify
 transformers>=4.30.0  # Transformers library for pretrained models (tested: 4.56.2)
